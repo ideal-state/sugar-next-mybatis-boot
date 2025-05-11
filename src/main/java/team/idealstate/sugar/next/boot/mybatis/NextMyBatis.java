@@ -16,7 +16,8 @@
 
 package team.idealstate.sugar.next.boot.mybatis;
 
+import team.idealstate.sugar.Sugar;
 import team.idealstate.sugar.next.database.DatabaseSessionFactory;
 import team.idealstate.sugar.next.database.TransactionManager;
 
-public interface NextMyBatis extends DatabaseSessionFactory, TransactionManager {}
+public interface NextMyBatis extends DatabaseSessionFactory, TransactionManager, Sugar {}
