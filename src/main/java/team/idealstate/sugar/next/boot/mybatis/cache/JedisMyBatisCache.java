@@ -16,8 +16,12 @@
 
 package team.idealstate.sugar.next.boot.mybatis.cache;
 
+import static team.idealstate.sugar.next.function.Functional.lazy;
+
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -25,7 +29,11 @@ import org.apache.ibatis.cache.Cache;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisException;
-import team.idealstate.sugar.internal.org.yaml.snakeyaml.Yaml;
+import team.idealstate.sugar.internal.com.fasterxml.jackson.annotation.JsonTypeInfo;
+import team.idealstate.sugar.internal.com.fasterxml.jackson.core.JsonFactory;
+import team.idealstate.sugar.internal.com.fasterxml.jackson.databind.ObjectMapper;
+import team.idealstate.sugar.internal.com.fasterxml.jackson.databind.cfg.MapperConfig;
+import team.idealstate.sugar.internal.com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import team.idealstate.sugar.next.boot.jedis.NextJedis;
 import team.idealstate.sugar.next.context.Context;
 import team.idealstate.sugar.next.context.ContextProperty;
@@ -112,14 +120,27 @@ public class JedisMyBatisCache implements Cache, ContextAware, Initializable {
         return readWriteLock;
     }
 
-    private final Lazy<Yaml> lazyYaml = Lazy.of(Yaml::new);
+    private final Lazy<ObjectMapper> json = lazy(() -> new ObjectMapper(new JsonFactory())
+            .findAndRegisterModules()
+            .activateDefaultTyping(
+                    BasicPolymorphicTypeValidator.builder()
+                            .allowIfBaseType(new BasicPolymorphicTypeValidator.TypeMatcher() {
+                                @Override
+                                public boolean match(MapperConfig<?> config, Class<?> clazz) {
+                                    // 排除所有集合和数组类型
+                                    return !Collection.class.isAssignableFrom(clazz) && !clazz.isArray();
+                                }
+                            })
+                            .build(),
+                    ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE,
+                    JsonTypeInfo.As.PROPERTY));
 
-    private byte[] serialize(Object value) {
-        return lazyYaml.get().dump(value).getBytes(getCharset());
+    private byte[] serialize(Object value) throws IOException {
+        return json.get().writeValueAsBytes(value);
     }
 
-    private <T> T deserialize(byte[] value) {
-        return lazyYaml.get().load(new String(value, getCharset()));
+    private Object deserialize(byte[] value) throws IOException {
+        return json.get().readValue(value, Object.class);
     }
 
     @Override
