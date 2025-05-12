@@ -84,7 +84,7 @@ public abstract class AbstractMapperBeanFactory<M extends Annotation> extends Ab
         public Object intercept(@Origin MethodHandle methodHandle, @AllArguments Object[] arguments) throws Throwable {
             Object repository = transactionManager.getRepository(marked);
             Validation.notNull(repository, "repository must not be null.");
-            return methodHandle.invoke(repository, arguments);
+            return methodHandle.bindTo(repository).invokeWithArguments(arguments);
         }
     }
 }
