@@ -48,6 +48,8 @@ dependencies {
     compileOnly(libs.sugar.next.jedis.boot)
     api(libs.mybatis)
 
+    implementation(libs.byte.buddy)
+
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     testCompileOnly(libs.lombok)
