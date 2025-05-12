@@ -46,7 +46,7 @@ final class MyBatisSession implements DatabaseSession {
             mapperRegistry.addMapper(repositoryType);
             String namespace = repositoryType.getName();
             if (cacheFactory != null
-                    && configuration.getCache(namespace) == null
+                    && !configuration.hasCache(namespace)
                     && !repositoryType.isAnnotationPresent(DisableCache.class)) {
                 Cache cache = cacheFactory.createCache(namespace, expired);
                 Validation.notNull(cache, "Cache must not be null.");
