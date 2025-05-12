@@ -2,7 +2,6 @@
 jreleaser = "1.18.0"
 lombok = "1.18.38"
 sugar-next = "0.1.0-SNAPSHOT"
-sugar-next-jedis-boot = "0.1.0-SNAPSHOT"
 mybatis = "3.5.19"
 byte-buddy = "1.17.5"
 
@@ -12,6 +11,5 @@ jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
 [libraries]
 lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
 sugar-next = { group = "team.idealstate.sugar", name = "sugar-next", version.ref = "sugar-next" }
-sugar-next-jedis-boot = { group = "team.idealstate.sugar.boot", name = "sugar-next-jedis-boot", version.ref = "sugar-next-jedis-boot" }
 mybatis = { group = "org.mybatis", name = "mybatis", version.ref = "mybatis" }
 byte-buddy = { group = "net.bytebuddy", name = "byte-buddy", version.ref = "byte-buddy" }

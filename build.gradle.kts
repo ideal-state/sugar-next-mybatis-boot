@@ -45,7 +45,6 @@ repositories {
 dependencies {
     api(libs.sugar.next)
 
-    compileOnly(libs.sugar.next.jedis.boot)
     api(libs.mybatis)
 
     implementation(libs.byte.buddy)

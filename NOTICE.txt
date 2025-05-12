@@ -23,12 +23,6 @@
 
 ------------------------------------------------------------------------------
 
-    sugar-next-jedis-boot
-    (https://github/ideal-state/sugar-next-jedis-boot)
-    Apache License 2.0
-
-------------------------------------------------------------------------------
-
     mybatis-3
     (https://github.com/mybatis/mybatis-3)
     Apache License 2.0
