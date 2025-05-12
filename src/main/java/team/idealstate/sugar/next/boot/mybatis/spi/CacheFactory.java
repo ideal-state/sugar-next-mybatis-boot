@@ -22,5 +22,5 @@ import team.idealstate.sugar.validate.annotation.NotNull;
 public interface CacheFactory {
 
     @NotNull
-    Cache createCache(@NotNull String id, int expired);
+    Cache createCache(@NotNull String id, Integer expired);
 }
