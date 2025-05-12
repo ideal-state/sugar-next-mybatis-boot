@@ -1,6 +1,6 @@
 # MyBatis
 # 是否启用日志
-log: false
+log: true
 # 二级缓存相关
 cache:
   # 是否启用
