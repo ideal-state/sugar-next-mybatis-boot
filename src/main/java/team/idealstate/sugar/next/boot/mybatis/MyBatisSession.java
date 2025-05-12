@@ -22,6 +22,7 @@ import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
+import team.idealstate.sugar.next.boot.mybatis.annotation.DisableCache;
 import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.database.DatabaseSession;
 import team.idealstate.sugar.validate.Validation;
@@ -44,7 +45,9 @@ final class MyBatisSession implements DatabaseSession {
         if (!mapperRegistry.hasMapper(repositoryType)) {
             mapperRegistry.addMapper(repositoryType);
             String namespace = repositoryType.getName();
-            if (cacheFactory != null && configuration.getCache(namespace) == null) {
+            if (cacheFactory != null
+                    && configuration.getCache(namespace) == null
+                    && !repositoryType.isAnnotationPresent(DisableCache.class)) {
                 Cache cache = cacheFactory.createCache(namespace, expired);
                 Validation.notNull(cache, "Cache must not be null.");
                 configuration.addCache(cache);
