@@ -52,9 +52,12 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
     @Override
     @SuppressWarnings({"unchecked"})
     protected <T> T doProxy(
-            @NotNull Context context, @NotNull String beanName, @NotNull Component metadata, @NotNull T instance) {
-        Class<?> instanceType = instance.getClass();
-        Method[] methods = instanceType.getMethods();
+            @NotNull Context context,
+            @NotNull String beanName,
+            @NotNull Component metadata,
+            @NotNull T instance,
+            @NotNull Class<T> marked) {
+        Method[] methods = marked.getMethods();
         if (methods.length == 0) {
             return instance;
         }
@@ -67,7 +70,7 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
             if (Modifier.isStatic(method.getModifiers())) {
                 Log.warn(String.format(
                         "%s: '%s' static method '%s' is ignored.",
-                        getClass().getSimpleName(), instanceType.getName(), method.getName()));
+                        getClass().getSimpleName(), marked.getName(), method.getName()));
                 continue;
             }
             transactions.put(method.toString(), transaction);
@@ -78,10 +81,11 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         TransactionManager transactionManager = getTransactionManager(context);
         transactions = Collections.unmodifiableMap(transactions);
         Class<?> proxyType = functional(new ByteBuddy()
-                        .subclass(instanceType)
-                        .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
-                        .intercept(MethodDelegation.to(
-                                new TransactionInterceptor(transactionManager, instance, transactions)))
+                        .subclass(marked)
+                        .method(ElementMatchers.isAnnotatedWith(Transaction.class)
+                                .and(ElementMatchers.not(ElementMatchers.isStatic())))
+                        .intercept(MethodDelegation.withDefaultConfiguration()
+                                .to(new TransactionInterceptor(transactionManager, instance, transactions)))
                         .make())
                 .use(Class.class, unloaded -> unloaded.load(context.getClassLoader())
                         .getLoaded());
@@ -105,7 +109,7 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
     }
 
     @RequiredArgsConstructor
-    protected static final class TransactionInterceptor {
+    public static final class TransactionInterceptor {
         @NonNull
         private final TransactionManager transactionManager;
 
@@ -115,8 +119,8 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         @NonNull
         private final Map<String, Transaction> transactions;
 
-        @RuntimeType
         @SuppressWarnings("unused")
+        @RuntimeType
         public Object intercept(
                 @Origin String method, @Origin MethodHandle methodHandle, @AllArguments Object[] arguments)
                 throws Throwable {

@@ -55,8 +55,9 @@ public abstract class AbstractMapperBeanFactory<M extends Annotation> extends Ab
         TransactionManager transactionManager = TransactionComponentBeanFactory.getTransactionManager(context);
         Class<?> proxyType = functional(new ByteBuddy()
                         .subclass(marked)
-                        .method(ElementMatchers.isPublic().and(ElementMatchers.not(ElementMatchers.isStatic())))
-                        .intercept(MethodDelegation.to(new MapperInterceptor(transactionManager, marked)))
+                        .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
+                        .intercept(MethodDelegation.withDefaultConfiguration()
+                                .to(new MapperInterceptor(transactionManager, marked)))
                         .make())
                 .use(Class.class, unloaded -> unloaded.load(context.getClassLoader())
                         .getLoaded());
@@ -71,7 +72,7 @@ public abstract class AbstractMapperBeanFactory<M extends Annotation> extends Ab
     }
 
     @RequiredArgsConstructor
-    protected static final class MapperInterceptor {
+    public static final class MapperInterceptor {
         @NonNull
         private final TransactionManager transactionManager;
 
