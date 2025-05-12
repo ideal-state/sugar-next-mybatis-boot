@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package team.idealstate.sugar.next.boot.mybatis.log;
+package team.idealstate.sugar.next.boot.mybatis.logging;
 
 import lombok.Data;
 import team.idealstate.sugar.logging.Log;

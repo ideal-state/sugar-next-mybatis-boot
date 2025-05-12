@@ -36,7 +36,7 @@ import org.apache.ibatis.session.TransactionIsolationLevel;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import team.idealstate.sugar.logging.Log;
 import team.idealstate.sugar.next.boot.mybatis.exception.MyBatisException;
-import team.idealstate.sugar.next.boot.mybatis.log.LogImpl;
+import team.idealstate.sugar.next.boot.mybatis.logging.LogImpl;
 import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.context.Bean;
 import team.idealstate.sugar.next.context.Context;
