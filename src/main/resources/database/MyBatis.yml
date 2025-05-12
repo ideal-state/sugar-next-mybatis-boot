@@ -4,6 +4,6 @@ log: false
 # 二级缓存相关
 cache:
   # 是否启用
-  enabled: false
+  enabled: true
   # 过期时长（秒）
   expired: 43200
