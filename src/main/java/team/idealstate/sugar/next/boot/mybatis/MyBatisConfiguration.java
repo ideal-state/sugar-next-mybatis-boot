@@ -16,16 +16,12 @@
 
 package team.idealstate.sugar.next.boot.mybatis;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import team.idealstate.sugar.next.context.annotation.component.Configuration;
 
 @Configuration(uri = "/database/MyBatis.yml", release = "bundled:/database/MyBatis.yml")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class MyBatisConfiguration {
 
     @NonNull
@@ -35,8 +31,6 @@ public class MyBatisConfiguration {
     private Cache cache;
 
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class Cache {
         @NonNull
         private Boolean enabled;

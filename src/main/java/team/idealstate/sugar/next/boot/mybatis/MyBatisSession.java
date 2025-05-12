@@ -18,8 +18,13 @@ package team.idealstate.sugar.next.boot.mybatis;
 
 import lombok.Data;
 import lombok.NonNull;
+import org.apache.ibatis.binding.MapperRegistry;
+import org.apache.ibatis.cache.Cache;
+import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
+import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.database.DatabaseSession;
+import team.idealstate.sugar.validate.Validation;
 import team.idealstate.sugar.validate.annotation.NotNull;
 
 @Data
@@ -28,9 +33,23 @@ final class MyBatisSession implements DatabaseSession {
     @NonNull
     private final SqlSession sqlSession;
 
+    private final CacheFactory cacheFactory;
+    private final int expired;
+
     @NotNull
     @Override
     public <T> T getRepository(@NotNull Class<T> repositoryType) {
+        Configuration configuration = sqlSession.getConfiguration();
+        MapperRegistry mapperRegistry = configuration.getMapperRegistry();
+        if (!mapperRegistry.hasMapper(repositoryType)) {
+            mapperRegistry.addMapper(repositoryType);
+            String namespace = repositoryType.getName();
+            if (cacheFactory != null && configuration.getCache(namespace) == null) {
+                Cache cache = cacheFactory.createCache(namespace, expired);
+                Validation.notNull(cache, "Cache must not be null.");
+                configuration.addCache(cache);
+            }
+        }
         return sqlSession.getMapper(repositoryType);
     }
 

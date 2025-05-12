@@ -14,9 +14,13 @@
  *    limitations under the License.
  */
 
-package team.idealstate.sugar.next.boot.mybatis;
+package team.idealstate.sugar.next.boot.mybatis.spi;
 
-import team.idealstate.sugar.next.database.DatabaseSessionFactory;
-import team.idealstate.sugar.next.database.TransactionManager;
+import org.apache.ibatis.cache.Cache;
+import team.idealstate.sugar.validate.annotation.NotNull;
 
-public interface NextMyBatis extends DatabaseSessionFactory, TransactionManager {}
+public interface CacheFactory {
+
+    @NotNull
+    Cache createCache(@NotNull String id, int expired);
+}

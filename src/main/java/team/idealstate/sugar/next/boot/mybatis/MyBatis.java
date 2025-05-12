@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
@@ -35,26 +35,28 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.session.TransactionIsolationLevel;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import team.idealstate.sugar.logging.Log;
+import team.idealstate.sugar.next.boot.mybatis.exception.MyBatisException;
 import team.idealstate.sugar.next.boot.mybatis.log.LogImpl;
+import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.context.Bean;
 import team.idealstate.sugar.next.context.Context;
 import team.idealstate.sugar.next.context.annotation.component.Component;
 import team.idealstate.sugar.next.context.annotation.feature.Autowired;
-import team.idealstate.sugar.next.context.annotation.feature.Named;
 import team.idealstate.sugar.next.context.aware.ContextAware;
 import team.idealstate.sugar.next.context.lifecycle.Initializable;
 import team.idealstate.sugar.next.database.DataSourceProvider;
 import team.idealstate.sugar.next.database.DatabaseSession;
+import team.idealstate.sugar.next.database.DatabaseSessionFactory;
+import team.idealstate.sugar.next.database.TransactionManager;
 import team.idealstate.sugar.next.database.TransactionSession;
 import team.idealstate.sugar.next.database.exception.TransactionException;
 import team.idealstate.sugar.next.function.Lazy;
 import team.idealstate.sugar.validate.Validation;
 import team.idealstate.sugar.validate.annotation.NotNull;
 
-@Named("NextMyBatis")
 @Component
 @SuppressWarnings("unused")
-public class MyBatis implements NextMyBatis, Initializable, ContextAware {
+public class MyBatis implements Initializable, ContextAware, DatabaseSessionFactory, TransactionManager {
 
     public static final int EXECUTION_MODE_SIMPLE = 0;
     public static final int EXECUTION_MODE_REUSE = 1;
@@ -91,7 +93,16 @@ public class MyBatis implements NextMyBatis, Initializable, ContextAware {
             sqlSession = sqlSessionFactory.openSession(
                     EXECUTION_MODES.get(executionMode), ISOLATION_LEVELS.get(isolationLevel));
         }
-        return new MyBatisSession(sqlSession);
+        try {
+            return new MyBatisSession(sqlSession, cacheFactory, expired);
+        } catch (Throwable e) {
+            sqlSession.close();
+            if (e instanceof MyBatisException) {
+                throw (MyBatisException) e;
+            } else {
+                throw new MyBatisException(e);
+            }
+        }
     }
 
     private final Map<Thread, TransactionSession> transactionSessions = new ConcurrentHashMap<>();
@@ -136,14 +147,17 @@ public class MyBatis implements NextMyBatis, Initializable, ContextAware {
             Boolean cacheEnabled = cache.getEnabled();
             if (cacheEnabled) {
                 myBatisConfig.setCacheEnabled(true);
-                List<Bean<Cache>> beans = context.getBeans(Cache.class);
+                List<Bean<CacheFactory>> beans = context.getBeans(CacheFactory.class);
                 if (beans.isEmpty()) {
-                    Log.warn("No MyBatis cache bean found, disable and skip.");
+                    Log.warn("No MyBatis cache factory bean found, disable and skip.");
                     myBatisConfig.setCacheEnabled(false);
+                } else if (beans.size() != 1) {
+                    throw new MyBatisException(String.format(
+                            "There are multiple MyBatis cache factory beans in the current context, please specify one of them. %s",
+                            beans.stream().map(Bean::getName).collect(Collectors.toList())));
                 } else {
-                    for (Bean<Cache> bean : beans) {
-                        myBatisConfig.addCache(bean.getInstance());
-                    }
+                    this.cacheFactory = beans.get(0).getInstance();
+                    this.expired = cache.getExpired();
                 }
             }
             for (Bean<Mapper> bean : context.getBeans(Mapper.class)) {
@@ -183,6 +197,9 @@ public class MyBatis implements NextMyBatis, Initializable, ContextAware {
     private MyBatisConfiguration getConfiguration() {
         return Validation.requireNotNull(configuration, "configuration must not be null.");
     }
+
+    private volatile CacheFactory cacheFactory;
+    private volatile int expired;
 
     private volatile DataSourceProvider dataSourceProvider;
 
