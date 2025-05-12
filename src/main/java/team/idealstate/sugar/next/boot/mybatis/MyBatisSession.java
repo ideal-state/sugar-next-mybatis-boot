@@ -34,7 +34,7 @@ final class MyBatisSession implements DatabaseSession {
     private final SqlSession sqlSession;
 
     private final CacheFactory cacheFactory;
-    private final int expired;
+    private final Integer expired;
 
     @NotNull
     @Override
