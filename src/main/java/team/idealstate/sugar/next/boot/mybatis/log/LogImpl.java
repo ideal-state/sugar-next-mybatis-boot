@@ -16,11 +16,16 @@
 
 package team.idealstate.sugar.next.boot.mybatis.log;
 
+import lombok.Data;
 import team.idealstate.sugar.logging.Log;
 import team.idealstate.sugar.logging.LogLevel;
 import team.idealstate.sugar.next.stacktrace.StackTraceUtils;
 
+@Data
 public class LogImpl implements org.apache.ibatis.logging.Log {
+
+    private final String name;
+
     @Override
     public boolean isDebugEnabled() {
         return Log.isEnabledLevel(LogLevel.DEBUG);
