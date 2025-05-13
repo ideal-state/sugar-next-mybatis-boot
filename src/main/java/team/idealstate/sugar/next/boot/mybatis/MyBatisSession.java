@@ -22,6 +22,7 @@ import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
+import team.idealstate.sugar.logging.Log;
 import team.idealstate.sugar.next.boot.mybatis.annotation.DisableCache;
 import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.database.DatabaseSession;
@@ -34,6 +35,9 @@ final class MyBatisSession implements DatabaseSession {
     @NonNull
     private final SqlSession sqlSession;
 
+    @NonNull
+    private final ClassLoader classLoader;
+
     private final CacheFactory cacheFactory;
     private final Integer expired;
 
@@ -43,14 +47,23 @@ final class MyBatisSession implements DatabaseSession {
         Configuration configuration = sqlSession.getConfiguration();
         MapperRegistry mapperRegistry = configuration.getMapperRegistry();
         if (!mapperRegistry.hasMapper(repositoryType)) {
-            mapperRegistry.addMapper(repositoryType);
-            String namespace = repositoryType.getName();
-            if (cacheFactory != null
-                    && !configuration.hasCache(namespace)
-                    && !repositoryType.isAnnotationPresent(DisableCache.class)) {
-                Cache cache = cacheFactory.createCache(namespace, expired);
-                Validation.notNull(cache, "Cache must not be null.");
-                configuration.addCache(cache);
+            Thread thread = Thread.currentThread();
+            ClassLoader threadContextClassLoader = thread.getContextClassLoader();
+            try {
+                thread.setContextClassLoader(getClassLoader());
+                Log.debug(() -> String.format("Adding mapper: %s", repositoryType.getName()));
+                mapperRegistry.addMapper(repositoryType);
+                String namespace = repositoryType.getName();
+                if (cacheFactory != null
+                        && !configuration.hasCache(namespace)
+                        && !repositoryType.isAnnotationPresent(DisableCache.class)) {
+                    Cache cache = cacheFactory.createCache(namespace, expired);
+                    Validation.notNull(cache, "Cache must not be null.");
+                    Log.debug(() -> String.format("Adding cache: %s", namespace));
+                    configuration.addCache(cache);
+                }
+            } finally {
+                thread.setContextClassLoader(threadContextClassLoader);
             }
         }
         return sqlSession.getMapper(repositoryType);

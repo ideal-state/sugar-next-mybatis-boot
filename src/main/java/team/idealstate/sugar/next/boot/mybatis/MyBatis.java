@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
@@ -94,7 +93,7 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
                     EXECUTION_MODES.get(executionMode), ISOLATION_LEVELS.get(isolationLevel));
         }
         try {
-            return new MyBatisSession(sqlSession, cacheFactory, expired);
+            return new MyBatisSession(sqlSession, getContext().getClassLoader(), cacheFactory, expired);
         } catch (Throwable e) {
             sqlSession.close();
             if (e instanceof MyBatisException) {
@@ -159,9 +158,6 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
                     this.cacheFactory = beans.get(0).getInstance();
                     this.expired = cache.getExpired();
                 }
-            }
-            for (Bean<Mapper> bean : context.getBeans(Mapper.class)) {
-                myBatisConfig.addMapper(bean.getMarked());
             }
             return new SqlSessionFactoryBuilder().build(myBatisConfig);
         });
