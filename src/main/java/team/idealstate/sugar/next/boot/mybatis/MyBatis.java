@@ -159,6 +159,11 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
                     this.expired = cache.getExpired();
                 }
             }
+            Map<String, Object> properties = configuration.getProperties();
+            Object property = properties.get("mapUnderscoreToCamelCase");
+            if (property != null) {
+                myBatisConfig.setMapUnderscoreToCamelCase(Boolean.parseBoolean(property.toString()));
+            }
             return new SqlSessionFactoryBuilder().build(myBatisConfig);
         });
     }

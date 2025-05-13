@@ -16,6 +16,7 @@
 
 package team.idealstate.sugar.next.boot.mybatis;
 
+import java.util.Map;
 import lombok.Data;
 import lombok.NonNull;
 import team.idealstate.sugar.next.context.annotation.component.Configuration;
@@ -29,6 +30,9 @@ public class MyBatisConfiguration {
 
     @NonNull
     private Cache cache;
+
+    @NonNull
+    private Map<String, Object> properties;
 
     @Data
     public static class Cache {

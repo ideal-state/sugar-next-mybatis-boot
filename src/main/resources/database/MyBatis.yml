@@ -7,3 +7,7 @@ cache:
   enabled: true
   # 过期时长（秒）
   expired: 43200
+# MyBatis 属性
+properties:
+  # 自动驼峰命名转换
+  mapUnderscoreToCamelCase: true
