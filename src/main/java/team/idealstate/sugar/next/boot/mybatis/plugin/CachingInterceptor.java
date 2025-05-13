@@ -43,6 +43,9 @@ public class CachingInterceptor implements Interceptor {
 
     @Override
     public Object plugin(Object target) {
+        if (!(target instanceof Executor)) {
+            return target;
+        }
         return new CachingExecutorWrapper((Executor) target);
     }
 
