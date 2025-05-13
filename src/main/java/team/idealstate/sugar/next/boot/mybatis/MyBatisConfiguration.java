@@ -41,5 +41,8 @@ public class MyBatisConfiguration {
 
         @NonNull
         private Integer expired;
+
+        @NonNull
+        private Map<String, Object> properties;
     }
 }

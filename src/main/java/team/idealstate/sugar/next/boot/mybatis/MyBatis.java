@@ -36,6 +36,7 @@ import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import team.idealstate.sugar.logging.Log;
 import team.idealstate.sugar.next.boot.mybatis.exception.MyBatisException;
 import team.idealstate.sugar.next.boot.mybatis.logging.LogImpl;
+import team.idealstate.sugar.next.boot.mybatis.plugin.CachingInterceptor;
 import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
 import team.idealstate.sugar.next.context.Bean;
 import team.idealstate.sugar.next.context.Context;
@@ -93,7 +94,8 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
                     EXECUTION_MODES.get(executionMode), ISOLATION_LEVELS.get(isolationLevel));
         }
         try {
-            return new MyBatisSession(sqlSession, getContext().getClassLoader(), cacheFactory, expired);
+            return new MyBatisSession(
+                    sqlSession, getContext().getClassLoader(), cacheFactory, expired, cacheProperties);
         } catch (Throwable e) {
             sqlSession.close();
             if (e instanceof MyBatisException) {
@@ -144,6 +146,7 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
             MyBatisConfiguration.Cache cache = configuration.getCache();
             myBatisConfig.setCacheEnabled(false);
             Boolean cacheEnabled = cache.getEnabled();
+            this.cacheProperties = Collections.emptyMap();
             if (cacheEnabled) {
                 myBatisConfig.setCacheEnabled(true);
                 List<Bean<CacheFactory>> beans = context.getBeans(CacheFactory.class);
@@ -157,6 +160,8 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
                 } else {
                     this.cacheFactory = beans.get(0).getInstance();
                     this.expired = cache.getExpired();
+                    myBatisConfig.addInterceptor(new CachingInterceptor());
+                    this.cacheProperties = cache.getProperties();
                 }
             }
             Map<String, Object> properties = configuration.getProperties();
@@ -201,6 +206,7 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
 
     private volatile CacheFactory cacheFactory;
     private volatile int expired;
+    private volatile Map<String, Object> cacheProperties;
 
     private volatile DataSourceProvider dataSourceProvider;
 

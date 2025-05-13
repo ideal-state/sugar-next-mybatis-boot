@@ -7,6 +7,8 @@ cache:
   enabled: true
   # 过期时长（秒）
   expired: 43200
+  # 缓存属性（具体有哪些属性由 CacheFactory 的服务提供方决定）
+  properties: {}
 # MyBatis 属性
 properties:
   # 自动驼峰命名转换

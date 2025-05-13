@@ -16,11 +16,12 @@
 
 package team.idealstate.sugar.next.boot.mybatis.spi;
 
+import java.util.Map;
 import org.apache.ibatis.cache.Cache;
 import team.idealstate.sugar.validate.annotation.NotNull;
 
 public interface CacheFactory {
 
     @NotNull
-    Cache createCache(@NotNull String id, Integer expired);
+    Cache createCache(@NotNull String id, Integer expired, @NotNull Map<String, Object> properties);
 }
