@@ -148,11 +148,9 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
             Boolean cacheEnabled = cache.getEnabled();
             this.cacheProperties = Collections.emptyMap();
             if (cacheEnabled) {
-                myBatisConfig.setCacheEnabled(true);
                 List<Bean<CacheFactory>> beans = context.getBeans(CacheFactory.class);
                 if (beans.isEmpty()) {
                     Log.warn("No MyBatis cache factory bean found, disable and skip.");
-                    myBatisConfig.setCacheEnabled(false);
                 } else if (beans.size() != 1) {
                     throw new MyBatisException(String.format(
                             "There are multiple MyBatis cache factory beans in the current context, please specify one of them. %s",
