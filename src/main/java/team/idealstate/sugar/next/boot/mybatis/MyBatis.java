@@ -38,6 +38,7 @@ import team.idealstate.sugar.next.boot.mybatis.exception.MyBatisException;
 import team.idealstate.sugar.next.boot.mybatis.logging.LogImpl;
 import team.idealstate.sugar.next.boot.mybatis.plugin.CachingInterceptor;
 import team.idealstate.sugar.next.boot.mybatis.spi.CacheFactory;
+import team.idealstate.sugar.next.boot.mybatis.spi.MyBatisConfigurationBuilder;
 import team.idealstate.sugar.next.context.Bean;
 import team.idealstate.sugar.next.context.Context;
 import team.idealstate.sugar.next.context.annotation.component.Component;
@@ -166,6 +167,10 @@ public class MyBatis implements Initializable, ContextAware, DatabaseSessionFact
             Object property = properties.get("mapUnderscoreToCamelCase");
             if (property != null) {
                 myBatisConfig.setMapUnderscoreToCamelCase(Boolean.parseBoolean(property.toString()));
+            }
+            List<Bean<MyBatisConfigurationBuilder>> builders = context.getBeans(MyBatisConfigurationBuilder.class);
+            for (Bean<MyBatisConfigurationBuilder> builder : builders) {
+                builder.getInstance().build(myBatisConfig);
             }
             return new SqlSessionFactoryBuilder().build(myBatisConfig);
         });
