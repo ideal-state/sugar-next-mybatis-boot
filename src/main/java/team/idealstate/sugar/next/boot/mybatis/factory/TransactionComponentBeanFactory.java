@@ -82,8 +82,7 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         transactions = Collections.unmodifiableMap(transactions);
         Class<?> proxyType = functional(new ByteBuddy()
                         .subclass(marked)
-                        .method(ElementMatchers.isAnnotatedWith(Transaction.class)
-                                .and(ElementMatchers.not(ElementMatchers.isStatic())))
+                        .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
                         .intercept(MethodDelegation.withDefaultConfiguration()
                                 .to(new TransactionInterceptor(transactionManager, instance, transactions)))
                         .make())
