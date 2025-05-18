@@ -148,7 +148,9 @@ public class CachingInterceptor implements Interceptor {
                     if (plan.isValid()) {
                         plan.drop();
                     }
-                    last = plan;
+                    if (last == null) {
+                        last = plan;
+                    }
                     break;
                 }
             }
@@ -177,6 +179,7 @@ public class CachingInterceptor implements Interceptor {
             return cache.getObject(key);
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         @Nullable
         protected final CachePlan writeCache(
                 @NotNull MappedStatement ms, @NotNull Cache cache, @NotNull CacheKey key, Object value) {
@@ -216,19 +219,16 @@ public class CachingInterceptor implements Interceptor {
             }
         }
 
+        @SuppressWarnings("unused")
         protected final void commitCache(boolean required) {
             if (plans.isEmpty()) {
                 return;
             }
-            if (required) {
-                Set<String> excludes = new HashSet<>(plans.size());
-                Iterator<CachePlan> iterator = plans.descendingIterator();
-                while (iterator.hasNext()) {
-                    iterator.next().apply(excludes);
-                    iterator.remove();
-                }
-            } else {
-                plans.clear();
+            Set<String> excludes = new HashSet<>(plans.size());
+            Iterator<CachePlan> iterator = plans.descendingIterator();
+            while (iterator.hasNext()) {
+                iterator.next().apply(excludes);
+                iterator.remove();
             }
         }
 
@@ -396,7 +396,7 @@ public class CachingInterceptor implements Interceptor {
             public void apply(@NotNull Set<String> excludes) {
                 if (isValid()) {
                     try {
-                        cache.putObject(getKey().toString(), getValue());
+                        cache.putObject(getKey(), getValue());
                     } catch (Throwable e) {
                         Log.error(e);
                     }
