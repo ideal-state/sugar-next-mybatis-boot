@@ -18,7 +18,6 @@ package team.idealstate.sugar.next.boot.mybatis.factory;
 
 import static team.idealstate.sugar.next.function.Functional.functional;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -26,13 +25,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.implementation.MethodDelegation;
-import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.matcher.ElementMatchers;
 import team.idealstate.sugar.logging.Log;
 import team.idealstate.sugar.next.boot.mybatis.MyBatis;
@@ -48,18 +48,12 @@ import team.idealstate.sugar.validate.annotation.NotNull;
 
 public class TransactionComponentBeanFactory extends ComponentBeanFactory {
 
-    @NotNull
     @Override
     @SuppressWarnings({"unchecked"})
-    protected <T> T doProxy(
-            @NotNull Context context,
-            @NotNull String beanName,
-            @NotNull Component metadata,
-            @NotNull T instance,
-            @NotNull Class<T> marked) {
+    protected <T> T doCreate(Context context, String beanName, Component metadata, Class<T> marked) {
         Method[] methods = marked.getMethods();
         if (methods.length == 0) {
-            return instance;
+            return super.doCreate(context, beanName, metadata, marked);
         }
         Map<String, Transaction> transactions = new HashMap<>(methods.length);
         for (Method method : methods) {
@@ -76,7 +70,7 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
             transactions.put(method.toString(), transaction);
         }
         if (transactions.isEmpty()) {
-            return instance;
+            return super.doCreate(context, beanName, metadata, marked);
         }
         TransactionManager transactionManager = getTransactionManager(context);
         transactions = Collections.unmodifiableMap(transactions);
@@ -84,7 +78,7 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
                         .subclass(marked)
                         .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
                         .intercept(MethodDelegation.withDefaultConfiguration()
-                                .to(new TransactionInterceptor(transactionManager, instance, transactions)))
+                                .to(new TransactionInterceptor(transactionManager, transactions)))
                         .make())
                 .use(Class.class, unloaded -> unloaded.load(context.getClassLoader())
                         .getLoaded());
@@ -113,26 +107,20 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         private final TransactionManager transactionManager;
 
         @NonNull
-        private final Object instance;
-
-        @NonNull
         private final Map<String, Transaction> transactions;
 
         @SuppressWarnings("unused")
         @RuntimeType
-        public Object intercept(
-                @Origin String method, @Origin MethodHandle methodHandle, @AllArguments Object[] arguments)
-                throws Throwable {
+        public Object intercept(@Origin String method, @SuperCall Callable<?> callable) throws Throwable {
             Transaction transaction = transactions.get(method);
-            MethodHandle bound = methodHandle.bindTo(instance);
             if (transaction == null) {
-                return bound.invokeWithArguments(arguments);
+                return callable.call();
             }
             return functional(transactionManager.openTransaction(
                             transaction.executionMode(), transaction.isolationLevel()))
                     .use(Object.class, session -> {
                         try {
-                            return bound.invokeWithArguments(arguments);
+                            return callable.call();
                         } catch (Throwable e) {
                             session.rollback();
                             throw e;
