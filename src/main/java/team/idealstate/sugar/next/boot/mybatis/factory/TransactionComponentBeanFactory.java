@@ -18,6 +18,8 @@ package team.idealstate.sugar.next.boot.mybatis.factory;
 
 import static team.idealstate.sugar.next.function.Functional.functional;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -29,6 +31,7 @@ import java.util.concurrent.Callable;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
@@ -41,6 +44,7 @@ import team.idealstate.sugar.next.context.Context;
 import team.idealstate.sugar.next.context.annotation.component.Component;
 import team.idealstate.sugar.next.context.exception.ContextException;
 import team.idealstate.sugar.next.context.factory.ComponentBeanFactory;
+import team.idealstate.sugar.next.context.util.AutowiredUtils;
 import team.idealstate.sugar.next.database.TransactionManager;
 import team.idealstate.sugar.next.database.annotation.Transaction;
 import team.idealstate.sugar.validate.Validation;
@@ -74,16 +78,33 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         }
         TransactionManager transactionManager = getTransactionManager(context);
         transactions = Collections.unmodifiableMap(transactions);
-        Class<?> proxyType = functional(new ByteBuddy()
-                        .subclass(marked)
-                        .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
-                        .intercept(MethodDelegation.withDefaultConfiguration()
-                                .to(new TransactionInterceptor(transactionManager, transactions)))
-                        .make())
-                .use(Class.class, unloaded -> unloaded.load(context.getClassLoader())
-                        .getLoaded());
+        DynamicType.Unloaded<T> unloaded = new ByteBuddy()
+                .subclass(marked)
+                .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
+                .intercept(MethodDelegation.withDefaultConfiguration()
+                        .to(new TransactionInterceptor(transactionManager, transactions)))
+                .make();
+        String dump = System.getProperty("bytebuddy.dump");
+        if (dump != null) {
+            File dir = new File(dump);
+            if (!dir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+            }
+            try {
+                unloaded.saveIn(dir);
+            } catch (IOException e) {
+                throw new ContextException(e);
+            }
+        }
+        Class<?> dynamicType = functional(unloaded)
+                .use(Class.class, it -> it.load(context.getClassLoader()).getLoaded());
         try {
-            return (T) proxyType.getConstructor().newInstance();
+            Object autowired = AutowiredUtils.autowire(context, dynamicType);
+            if (autowired != null) {
+                return (T) autowired;
+            }
+            return (T) dynamicType.getConstructor().newInstance();
         } catch (InstantiationException
                 | IllegalAccessException
                 | InvocationTargetException
