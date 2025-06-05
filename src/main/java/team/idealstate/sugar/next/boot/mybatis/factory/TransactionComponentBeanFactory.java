@@ -33,6 +33,9 @@ import lombok.RequiredArgsConstructor;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.SuperMethodCall;
+import net.bytebuddy.implementation.attribute.MethodAttributeAppender;
+import net.bytebuddy.implementation.attribute.TypeAttributeAppender;
 import net.bytebuddy.implementation.bind.annotation.Origin;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
@@ -51,6 +54,15 @@ import team.idealstate.sugar.validate.Validation;
 import team.idealstate.sugar.validate.annotation.NotNull;
 
 public class TransactionComponentBeanFactory extends ComponentBeanFactory {
+
+    @NotNull
+    static TransactionManager getTransactionManager(@NotNull Context context) {
+        List<Bean<TransactionManager>> beans = context.getBeans(TransactionManager.class);
+        Validation.is(beans.size() == 1, "there are multiple transaction managers in the current context.");
+        Bean<TransactionManager> bean = beans.get(0);
+        Validation.is(MyBatis.class.isAssignableFrom(bean.getMarked()), "transaction manager must be MyBatis.");
+        return bean.getInstance();
+    }
 
     @Override
     @SuppressWarnings({"unchecked"})
@@ -80,9 +92,14 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         transactions = Collections.unmodifiableMap(transactions);
         DynamicType.Unloaded<T> unloaded = new ByteBuddy()
                 .subclass(marked)
+                .constructor(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isPrivate())))
+                .intercept(SuperMethodCall.INSTANCE)
+                .attribute(MethodAttributeAppender.ForInstrumentedMethod.INCLUDING_RECEIVER)
                 .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
                 .intercept(MethodDelegation.withDefaultConfiguration()
                         .to(new TransactionInterceptor(transactionManager, transactions)))
+                .attribute(MethodAttributeAppender.ForInstrumentedMethod.INCLUDING_RECEIVER)
+                .attribute(TypeAttributeAppender.ForInstrumentedType.INSTANCE)
                 .make();
         String dump = System.getProperty("bytebuddy.dump");
         if (dump != null) {
@@ -111,15 +128,6 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
                 | NoSuchMethodException e) {
             throw new ContextException(e);
         }
-    }
-
-    @NotNull
-    static TransactionManager getTransactionManager(@NotNull Context context) {
-        List<Bean<TransactionManager>> beans = context.getBeans(TransactionManager.class);
-        Validation.is(beans.size() == 1, "there are multiple transaction managers in the current context.");
-        Bean<TransactionManager> bean = beans.get(0);
-        Validation.is(MyBatis.class.isAssignableFrom(bean.getMarked()), "transaction manager must be MyBatis.");
-        return bean.getInstance();
     }
 
     @RequiredArgsConstructor
