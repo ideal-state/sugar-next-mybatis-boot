@@ -1,7 +1,7 @@
 [versions]
 jreleaser = "1.18.0"
 lombok = "1.18.38"
-sugar-next = "0.1.0-SNAPSHOT"
+sugar-next = "0.1.0"
 mybatis = "3.5.19"
 byte-buddy = "1.17.5"
 
