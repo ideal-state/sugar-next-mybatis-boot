@@ -92,14 +92,13 @@ public class TransactionComponentBeanFactory extends ComponentBeanFactory {
         transactions = Collections.unmodifiableMap(transactions);
         DynamicType.Unloaded<T> unloaded = new ByteBuddy()
                 .subclass(marked)
+                .attribute(TypeAttributeAppender.ForInstrumentedType.INSTANCE)
                 .constructor(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isPrivate())))
                 .intercept(SuperMethodCall.INSTANCE)
                 .attribute(MethodAttributeAppender.ForInstrumentedMethod.INCLUDING_RECEIVER)
                 .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isStatic())))
-                .intercept(MethodDelegation.withDefaultConfiguration()
-                        .to(new TransactionInterceptor(transactionManager, transactions)))
+                .intercept(MethodDelegation.to(new TransactionInterceptor(transactionManager, transactions)))
                 .attribute(MethodAttributeAppender.ForInstrumentedMethod.INCLUDING_RECEIVER)
-                .attribute(TypeAttributeAppender.ForInstrumentedType.INSTANCE)
                 .make();
         String dump = System.getProperty("bytebuddy.dump");
         if (dump != null) {
